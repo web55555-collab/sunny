@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>위탁관리업체 점검 관리 시스템</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Malgun Gothic', sans-serif; background: #f0f4f8; color: #333; font-size: 14px; }
+
+  /* ── 헤더 */
+  header { background: #1a56a0; color: #fff; padding: 14px 24px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 18px; font-weight: 700; }
+
+  /* ── 탭 */
+  nav { background: #fff; border-bottom: 2px solid #1a56a0; display: flex; gap: 0; padding: 0 16px; }
+  nav button { padding: 10px 20px; border: none; background: none; cursor: pointer; font-size: 14px; color: #555; border-bottom: 3px solid transparent; transition: .2s; }
+  nav button.active { color: #1a56a0; border-bottom-color: #1a56a0; font-weight: 700; }
+  nav button:hover { color: #1a56a0; }
+
+  /* ── 레이아웃 */
+  main { padding: 20px 24px; max-width: 1200px; margin: 0 auto; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── 카드 */
+  .card { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.1); padding: 20px; margin-bottom: 20px; }
+  .card h2 { font-size: 15px; font-weight: 700; color: #1a56a0; margin-bottom: 14px; border-left: 4px solid #1a56a0; padding-left: 10px; }
+
+  /* ── 요약 카드 */
+  .summary-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 20px; }
+  .stat-card { background: #fff; border-radius: 8px; padding: 16px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+  .stat-card .num { font-size: 32px; font-weight: 700; }
+  .stat-card .lbl { font-size: 12px; color: #888; margin-top: 4px; }
+  .stat-card.blue .num { color: #1a56a0; }
+  .stat-card.green .num { color: #16a34a; }
+  .stat-card.red .num { color: #dc2626; }
+  .stat-card.orange .num { color: #ea580c; }
+
+  /* ── 폼 */
+  .form-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+  .form-grid.col2 { grid-template-columns: repeat(2,1fr); }
+  .form-grid.col4 { grid-template-columns: repeat(4,1fr); }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-group label { font-size: 12px; color: #555; font-weight: 600; }
+  .form-group input, .form-group select, .form-group textarea {
+    border: 1px solid #d1d5db; border-radius: 6px; padding: 7px 10px;
+    font-size: 13px; font-family: inherit; transition: border .2s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none; border-color: #1a56a0;
+  }
+
+  /* ── 배출기준 박스 */
+  .standards-box { background: #f0f7ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px; margin-top: 4px; }
+  .standards-box h3 { font-size: 12px; font-weight: 700; color: #1e40af; margin-bottom: 10px; }
+  .standards-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; }
+
+  /* ── 버튼 */
+  .btn { padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: .2s; }
+  .btn-primary { background: #1a56a0; color: #fff; }
+  .btn-primary:hover { background: #1648c4; }
+  .btn-success { background: #16a34a; color: #fff; }
+  .btn-success:hover { background: #15803d; }
+  .btn-danger { background: #dc2626; color: #fff; font-size: 12px; padding: 5px 10px; }
+  .btn-danger:hover { background: #b91c1c; }
+  .btn-secondary { background: #6b7280; color: #fff; }
+  .btn-secondary:hover { background: #4b5563; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-edit { background: #f59e0b; color: #fff; font-size: 12px; padding: 5px 10px; }
+  .btn-edit:hover { background: #d97706; }
+
+  /* ── 테이블 */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f8fafc; border-bottom: 2px solid #e2e8f0; padding: 9px 10px; text-align: left; font-weight: 700; color: #374151; }
+  td { border-bottom: 1px solid #f1f5f9; padding: 8px 10px; vertical-align: middle; }
+  tr:hover td { background: #f8fafc; }
+
+  /* ── 배지 */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-normal { background: #dcfce7; color: #16a34a; }
+  .badge-warn   { background: #fef9c3; color: #ca8a04; }
+  .badge-bad    { background: #fee2e2; color: #dc2626; }
+  .badge-done   { background: #dcfce7; color: #16a34a; }
+  .badge-pend   { background: #fee2e2; color: #dc2626; }
+  .badge-discharge-natural { background: #dbeafe; color: #1d4ed8; }
+  .badge-discharge-city    { background: #ede9fe; color: #7c3aed; }
+
+  /* ── 필터 바 */
+  .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
+  .filter-bar select, .filter-bar input { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; }
+
+  /* ── 업체 상세 패널 */
+  .vendor-detail { background: #f0f7ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px; margin-top: 8px; }
+  .vendor-detail h4 { font-size: 13px; color: #1e40af; font-weight: 700; margin-bottom: 10px; }
+  .detail-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+  .detail-item { font-size: 12px; }
+  .detail-item .dk { color: #6b7280; }
+  .detail-item .dv { font-weight: 600; color: #1f2937; }
+
+  /* ── 섹션 구분선 */
+  .section-divider { border: none; border-top: 1px dashed #d1d5db; margin: 14px 0; }
+
+  .mt-2 { margin-top: 8px; }
+  .flex-end { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .text-sm { font-size: 12px; color: #6b7280; }
+
+  /* 모달 */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 10px; padding: 24px; width: 680px; max-width: 96vw; max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 16px; font-weight: 700; color: #1a56a0; margin-bottom: 16px; }
+
+  @media (max-width: 700px) {
+    .form-grid, .form-grid.col2, .form-grid.col4, .standards-grid, .summary-grid { grid-template-columns: 1fr 1fr; }
+    .detail-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 0 1 0 10h-2"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+  <h1>위탁관리업체 점검 관리 시스템</h1>
+</header>
+
+<nav>
+  <button class="active" onclick="switchTab('dashboard')">📊 대시보드</button>
+  <button onclick="switchTab('vendors')">🏭 업체관리</button>
+  <button onclick="switchTab('records')">📋 점검기록</button>
+  <button onclick="switchTab('specials')">⚡ 특별점검</button>
+</nav>
+
+<!-- ══════════ 대시보드 ══════════ -->
+<main>
+<div id="tab-dashboard" class="tab-content active">
+  <div class="summary-grid" id="summaryGrid">
+    <div class="stat-card blue"><div class="num" id="s-total">-</div><div class="lbl">이번달 총 점검</div></div>
+    <div class="stat-card green"><div class="num" id="s-normal">-</div><div class="lbl">정상</div></div>
+    <div class="stat-card red"><div class="num" id="s-warn">-</div><div class="lbl">주의/불량</div></div>
+    <div class="stat-card orange"><div class="num" id="s-pending">-</div><div class="lbl">미완료 특별점검</div></div>
+  </div>
+  <div class="card">
+    <h2>최근 점검기록 (10건)</h2>
+    <table id="dashTable">
+      <thead><tr><th>날짜</th><th>업체</th><th>구역</th><th>점검자</th><th>결과</th><th>특이사항</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════ 업체관리 ══════════ -->
+<div id="tab-vendors" class="tab-content">
+  <div class="card">
+    <h2>업체 등록</h2>
+    <div class="form-grid">
+      <div class="form-group"><label>업체명 *</label><input id="v-name" placeholder="업체명"></div>
+      <div class="form-group"><label>구역</label><input id="v-area" placeholder="예) A구역"></div>
+      <div class="form-group"><label>담당자</label><input id="v-contact" placeholder="담당자명"></div>
+      <div class="form-group"><label>연락처</label><input id="v-phone" placeholder="010-0000-0000"></div>
+      <div class="form-group">
+        <label>점검주기</label>
+        <select id="v-cycle">
+          <option>주 1회</option><option>주 2회</option><option>월 1회</option><option>월 2회</option><option>분기 1회</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>점검요일</label>
+        <select id="v-day">
+          <option>월</option><option>화</option><option>수</option><option>목</option><option>금</option><option>토</option>
+        </select>
+      </div>
+    </div>
+
+    <hr class="section-divider">
+
+    <!-- 수처리 정보 -->
+    <div class="form-grid">
+      <div class="form-group">
+        <label>수처리공법</label>
+        <input id="v-treatment" placeholder="예) SBR, MBR, 활성슬러지법 등">
+      </div>
+      <div class="form-group">
+        <label>수처리시설용량 (㎥/일)</label>
+        <input id="v-capacity" type="number" min="0" placeholder="예) 500">
+      </div>
+      <div class="form-group">
+        <label>최초시공일 (준공일)</label>
+        <input id="v-cdate" type="date">
+      </div>
+    </div>
+
+    <!-- 배출기준 -->
+    <div class="standards-box mt-2">
+      <h3>처리수 배출기준</h3>
+      <div class="standards-grid">
+        <div class="form-group"><label>BOD (mg/L)</label><input id="v-bod" type="number" step="0.1" placeholder="예) 10"></div>
+        <div class="form-group"><label>SS (mg/L)</label><input id="v-ss" type="number" step="0.1" placeholder="예) 10"></div>
+        <div class="form-group"><label>T-N (mg/L)</label><input id="v-tn" type="number" step="0.1" placeholder="예) 20"></div>
+        <div class="form-group"><label>T-P (mg/L)</label><input id="v-tp" type="number" step="0.1" placeholder="예) 2"></div>
+        <div class="form-group"><label>총대장균군수 (CFU/mL)</label><input id="v-coliform" type="number" placeholder="예) 3000"></div>
+      </div>
+    </div>
+
+    <!-- 최종 배출구 방법 -->
+    <div class="form-group mt-2" style="max-width:300px">
+      <label>최종처리수 배출구 방법</label>
+      <select id="v-discharge">
+        <option value="자연배수로">자연배수로</option>
+        <option value="시·도 처리장">시·도 처리장</option>
+      </select>
+    </div>
+
+    <div class="flex-end">
+      <button class="btn btn-primary" onclick="addVendor()">+ 업체 등록</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>등록 업체 목록</h2>
+    <table id="vendorTable">
+      <thead>
+        <tr>
+          <th>업체명</th><th>구역</th><th>수처리공법</th>
+          <th>시설용량(㎥/일)</th><th>배출방법</th>
+          <th>점검주기</th><th>담당자</th><th>관리</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════ 점검기록 ══════════ -->
+<div id="tab-records" class="tab-content">
+  <div class="card">
+    <h2>점검기록 등록</h2>
+    <div class="form-grid">
+      <div class="form-group"><label>날짜 *</label><input id="r-date" type="date"></div>
+      <div class="form-group">
+        <label>업체</label>
+        <select id="r-vendor"><option value="">-- 선택 --</option></select>
+      </div>
+      <div class="form-group"><label>구역</label><input id="r-area" placeholder="구역"></div>
+      <div class="form-group"><label>점검자</label><input id="r-inspector" placeholder="점검자명"></div>
+      <div class="form-group"><label>점검항목</label><input id="r-items" placeholder="예) 방류수질, 슬러지, 송풍기"></div>
+      <div class="form-group">
+        <label>결과</label>
+        <select id="r-result">
+          <option value="정상">정상</option>
+          <option value="주의">주의</option>
+          <option value="불량">불량</option>
+        </select>
+      </div>
+      <div class="form-group full"><label>특이사항</label><textarea id="r-note" rows="2" placeholder="특이사항 입력"></textarea></div>
+    </div>
+    <div class="flex-end">
+      <button class="btn btn-primary" onclick="addRecord()">+ 기록 등록</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>점검기록 조회</h2>
+    <div class="filter-bar">
+      <select id="f-vendor" onchange="loadRecords()"><option value="">전체 업체</option></select>
+      <select id="f-result" onchange="loadRecords()">
+        <option value="">전체 결과</option>
+        <option value="정상">정상</option><option value="주의">주의</option><option value="불량">불량</option>
+      </select>
+      <input id="f-month" type="month" onchange="loadRecords()" placeholder="월 선택">
+      <button class="btn btn-secondary" onclick="exportCSV()">📥 CSV 내보내기</button>
+    </div>
+    <table id="recordTable">
+      <thead><tr><th>날짜</th><th>업체</th><th>구역</th><th>점검자</th><th>점검항목</th><th>결과</th><th>특이사항</th><th>삭제</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════ 특별점검 ══════════ -->
+<div id="tab-specials" class="tab-content">
+  <div class="card">
+    <h2>특별점검 등록</h2>
+    <div class="form-grid">
+      <div class="form-group"><label>날짜 *</label><input id="sp-date" type="date"></div>
+      <div class="form-group"><label>제목 *</label><input id="sp-title" placeholder="점검 제목"></div>
+      <div class="form-group">
+        <label>업체</label>
+        <select id="sp-vendor"><option value="">-- 선택 --</option></select>
+      </div>
+      <div class="form-group">
+        <label>유형</label>
+        <select id="sp-type">
+          <option>민원</option><option>행정지도</option><option>안전점검</option><option>기타</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>처리상태</label>
+        <select id="sp-status"><option value="미완료">미완료</option><option value="완료">완료</option></select>
+      </div>
+      <div class="form-group"><label>차기 예정일</label><input id="sp-next" type="date"></div>
+      <div class="form-group full"><label>내용</label><textarea id="sp-content" rows="3" placeholder="점검 내용 입력"></textarea></div>
+    </div>
+    <div class="flex-end">
+      <button class="btn btn-primary" onclick="addSpecial()">+ 특별점검 등록</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>특별점검 목록</h2>
+    <table id="specialTable">
+      <thead><tr><th>날짜</th><th>제목</th><th>업체</th><th>유형</th><th>내용</th><th>상태</th><th>차기예정</th><th>관리</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+</main>
+
+<!-- ══════════ 업체 수정 모달 ══════════ -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h3>✏️ 업체 정보 수정</h3>
+    <input type="hidden" id="em-id">
+    <div class="form-grid">
+      <div class="form-group"><label>구역</label><input id="em-area"></div>
+      <div class="form-group"><label>담당자</label><input id="em-contact"></div>
+      <div class="form-group"><label>연락처</label><input id="em-phone"></div>
+      <div class="form-group">
+        <label>점검주기</label>
+        <select id="em-cycle"><option>주 1회</option><option>주 2회</option><option>월 1회</option><option>월 2회</option><option>분기 1회</option></select>
+      </div>
+      <div class="form-group">
+        <label>점검요일</label>
+        <select id="em-day"><option>월</option><option>화</option><option>수</option><option>목</option><option>금</option><option>토</option></select>
+      </div>
+      <div class="form-group">
+        <label>수처리공법</label>
+        <input id="em-treatment">
+      </div>
+      <div class="form-group">
+        <label>시설용량 (㎥/일)</label>
+        <input id="em-capacity" type="number" min="0">
+      </div>
+      <div class="form-group">
+        <label>최초시공일 (준공일)</label>
+        <input id="em-cdate" type="date">
+      </div>
+    </div>
+    <div class="standards-box mt-2">
+      <h3>처리수 배출기준</h3>
+      <div class="standards-grid">
+        <div class="form-group"><label>BOD (mg/L)</label><input id="em-bod" type="number" step="0.1"></div>
+        <div class="form-group"><label>SS (mg/L)</label><input id="em-ss" type="number" step="0.1"></div>
+        <div class="form-group"><label>T-N (mg/L)</label><input id="em-tn" type="number" step="0.1"></div>
+        <div class="form-group"><label>T-P (mg/L)</label><input id="em-tp" type="number" step="0.1"></div>
+        <div class="form-group"><label>총대장균군수 (CFU/mL)</label><input id="em-coliform" type="number"></div>
+      </div>
+    </div>
+    <div class="form-group mt-2" style="max-width:280px">
+      <label>최종처리수 배출구 방법</label>
+      <select id="em-discharge">
+        <option value="자연배수로">자연배수로</option>
+        <option value="시·도 처리장">시·도 처리장</option>
+      </select>
+    </div>
+    <div class="flex-end">
+      <button class="btn btn-secondary" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveVendor()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 탭 전환
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'dashboard') { loadSummary(); loadDashRecords(); }
+  if (name === 'vendors')   loadVendors();
+  if (name === 'records')   { loadVendorSelects(); loadRecords(); }
+  if (name === 'specials')  { loadVendorSelects(); loadSpecials(); }
+}
+
+// ── 결과 배지
+function resultBadge(r) {
+  const m = { '정상':'normal','주의':'warn','불량':'bad' };
+  return `<span class="badge badge-${m[r]||'normal'}">${r||'정상'}</span>`;
+}
+
+// ── 배출방법 배지
+function dischargeBadge(d) {
+  if (!d) return '';
+  const cls = d === '자연배수로' ? 'natural' : 'city';
+  return `<span class="badge badge-discharge-${cls}">${d}</span>`;
+}
+
+// ── 대시보드
+async function loadSummary() {
+  const d = await fetch('/api/summary').then(r=>r.json());
+  document.getElementById('s-total').textContent  = d.total;
+  document.getElementById('s-normal').textContent = d.normal;
+  document.getElementById('s-warn').textContent   = d.warn_bad;
+  document.getElementById('s-pending').textContent = d.pending_special;
+}
+async function loadDashRecords() {
+  const rows = await fetch('/api/records').then(r=>r.json());
+  const tbody = document.querySelector('#dashTable tbody');
+  tbody.innerHTML = rows.slice(0,10).map(r=>`
+    <tr>
+      <td>${r.date}</td><td>${r.vendor}</td><td>${r.area}</td>
+      <td>${r.inspector}</td><td>${resultBadge(r.result)}</td>
+      <td>${r.note||''}</td>
+    </tr>`).join('');
+}
+
+// ── 업체 목록
+let vendorsCache = [];
+async function loadVendors() {
+  vendorsCache = await fetch('/api/vendors').then(r=>r.json());
+  const tbody = document.querySelector('#vendorTable tbody');
+  tbody.innerHTML = vendorsCache.map(v=>`
+    <tr>
+      <td><strong>${v.name}</strong></td>
+      <td>${v.area||''}</td>
+      <td>${v.treatment_method||'<span class="text-sm">미입력</span>'}</td>
+      <td>${v.facility_capacity ? v.facility_capacity+' ㎥/일' : '<span class="text-sm">미입력</span>'}</td>
+      <td>${dischargeBadge(v.discharge_method)}</td>
+      <td>${v.cycle||''} / ${v.day||''}요일</td>
+      <td>${v.contact||''} ${v.phone ? '('+v.phone+')' : ''}</td>
+      <td>
+        <button class="btn btn-edit btn-sm" onclick='openEdit(${JSON.stringify(v)})'>수정</button>
+        <button class="btn btn-danger btn-sm" onclick="delVendor(${v.id},'${v.name}')">삭제</button>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="8" style="padding: 0 10px 10px 10px; background:#fafafa;">
+        ${vendorDetailHtml(v)}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function vendorDetailHtml(v) {
+  if (!v.treatment_method && !v.standard_bod) return '';
+  return `<div class="vendor-detail">
+    <h4>📊 수처리 상세 정보</h4>
+    <div class="detail-grid">
+      <div class="detail-item"><span class="dk">수처리공법: </span><span class="dv">${v.treatment_method||'-'}</span></div>
+      <div class="detail-item"><span class="dk">시설용량: </span><span class="dv">${v.facility_capacity ? v.facility_capacity+' ㎥/일' : '-'}</span></div>
+      <div class="detail-item"><span class="dk">최초시공일: </span><span class="dv">${v.construction_date||'-'}</span></div>
+      <div class="detail-item"><span class="dk">BOD 기준: </span><span class="dv">${v.standard_bod ? v.standard_bod+' mg/L' : '-'}</span></div>
+      <div class="detail-item"><span class="dk">SS 기준: </span><span class="dv">${v.standard_ss ? v.standard_ss+' mg/L' : '-'}</span></div>
+      <div class="detail-item"><span class="dk">T-N 기준: </span><span class="dv">${v.standard_tn ? v.standard_tn+' mg/L' : '-'}</span></div>
+      <div class="detail-item"><span class="dk">T-P 기준: </span><span class="dv">${v.standard_tp ? v.standard_tp+' mg/L' : '-'}</span></div>
+      <div class="detail-item"><span class="dk">총대장균군수: </span><span class="dv">${v.standard_coliform ? v.standard_coliform+' CFU/mL' : '-'}</span></div>
+      <div class="detail-item"><span class="dk">배출구 방법: </span><span class="dv">${dischargeBadge(v.discharge_method)}</span></div>
+    </div>
+  </div>`;
+}
+
+async function addVendor() {
+  const name = document.getElementById('v-name').value.trim();
+  if (!name) { alert('업체명을 입력하세요.'); return; }
+  const body = {
+    name,
+    area:              document.getElementById('v-area').value.trim(),
+    contact:           document.getElementById('v-contact').value.trim(),
+    phone:             document.getElementById('v-phone').value.trim(),
+    cycle:             document.getElementById('v-cycle').value,
+    day:               document.getElementById('v-day').value,
+    treatment_method:  document.getElementById('v-treatment').value.trim(),
+    facility_capacity: document.getElementById('v-capacity').value,
+    construction_date: document.getElementById('v-cdate').value,
+    standard_bod:      document.getElementById('v-bod').value,
+    standard_ss:       document.getElementById('v-ss').value,
+    standard_tn:       document.getElementById('v-tn').value,
+    standard_tp:       document.getElementById('v-tp').value,
+    standard_coliform: document.getElementById('v-coliform').value,
+    discharge_method:  document.getElementById('v-discharge').value,
+  };
+  const res = await fetch('/api/vendors', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(r=>r.json());
+  if (res.ok) {
+    ['v-name','v-area','v-contact','v-phone','v-treatment','v-capacity','v-cdate',
+     'v-bod','v-ss','v-tn','v-tp','v-coliform'].forEach(id => document.getElementById(id).value='');
+    loadVendors();
+  } else { alert(res.error); }
+}
+
+async function delVendor(id, name) {
+  if (!confirm(`"${name}" 업체를 삭제하시겠습니까?`)) return;
+  await fetch(`/api/vendors/${id}`, { method:'DELETE' });
+  loadVendors();
+}
+
+// ── 업체 수정 모달
+function openEdit(v) {
+  document.getElementById('em-id').value         = v.id;
+  document.getElementById('em-area').value        = v.area||'';
+  document.getElementById('em-contact').value     = v.contact||'';
+  document.getElementById('em-phone').value       = v.phone||'';
+  document.getElementById('em-cycle').value       = v.cycle||'주 1회';
+  document.getElementById('em-day').value         = v.day||'월';
+  document.getElementById('em-treatment').value   = v.treatment_method||'';
+  document.getElementById('em-capacity').value    = v.facility_capacity||'';
+  document.getElementById('em-cdate').value       = v.construction_date||'';
+  document.getElementById('em-bod').value         = v.standard_bod||'';
+  document.getElementById('em-ss').value          = v.standard_ss||'';
+  document.getElementById('em-tn').value          = v.standard_tn||'';
+  document.getElementById('em-tp').value          = v.standard_tp||'';
+  document.getElementById('em-coliform').value    = v.standard_coliform||'';
+  document.getElementById('em-discharge').value   = v.discharge_method||'자연배수로';
+  document.getElementById('editModal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('editModal').classList.remove('open');
+}
+async function saveVendor() {
+  const id = document.getElementById('em-id').value;
+  const body = {
+    area:              document.getElementById('em-area').value.trim(),
+    contact:           document.getElementById('em-contact').value.trim(),
+    phone:             document.getElementById('em-phone').value.trim(),
+    cycle:             document.getElementById('em-cycle').value,
+    day:               document.getElementById('em-day').value,
+    treatment_method:  document.getElementById('em-treatment').value.trim(),
+    facility_capacity: document.getElementById('em-capacity').value,
+    construction_date: document.getElementById('em-cdate').value,
+    standard_bod:      document.getElementById('em-bod').value,
+    standard_ss:       document.getElementById('em-ss').value,
+    standard_tn:       document.getElementById('em-tn').value,
+    standard_tp:       document.getElementById('em-tp').value,
+    standard_coliform: document.getElementById('em-coliform').value,
+    discharge_method:  document.getElementById('em-discharge').value,
+  };
+  await fetch(`/api/vendors/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  closeModal();
+  loadVendors();
+}
+
+// ── 업체 셀렉트박스 공통
+async function loadVendorSelects() {
+  if (!vendorsCache.length) vendorsCache = await fetch('/api/vendors').then(r=>r.json());
+  const ids = ['r-vendor','f-vendor','sp-vendor'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    const cur = el.value;
+    const placeholder = id === 'f-vendor' ? '<option value="">전체 업체</option>' : '<option value="">-- 선택 --</option>';
+    el.innerHTML = placeholder + vendorsCache.map(v=>`<option value="${v.name}">${v.name}</option>`).join('');
+    el.value = cur;
+  });
+}
+
+// ── 점검 기록
+async function loadRecords() {
+  const params = new URLSearchParams({
+    vendor: document.getElementById('f-vendor').value,
+    result: document.getElementById('f-result').value,
+    month:  document.getElementById('f-month').value,
+  });
+  const rows = await fetch('/api/records?' + params).then(r=>r.json());
+  const tbody = document.querySelector('#recordTable tbody');
+  tbody.innerHTML = rows.map(r=>`
+    <tr>
+      <td>${r.date}</td><td>${r.vendor}</td><td>${r.area}</td>
+      <td>${r.inspector}</td><td>${r.items}</td>
+      <td>${resultBadge(r.result)}</td><td>${r.note||''}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="delRecord(${r.id})">삭제</button></td>
+    </tr>`).join('');
+}
+
+async function addRecord() {
+  const date = document.getElementById('r-date').value;
+  if (!date) { alert('날짜를 입력하세요.'); return; }
+  const body = {
+    date,
+    vendor:    document.getElementById('r-vendor').value,
+    area:      document.getElementById('r-area').value,
+    inspector: document.getElementById('r-inspector').value,
+    items:     document.getElementById('r-items').value,
+    result:    document.getElementById('r-result').value,
+    note:      document.getElementById('r-note').value,
+  };
+  await fetch('/api/records', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  ['r-date','r-area','r-inspector','r-items','r-note'].forEach(id => document.getElementById(id).value='');
+  loadRecords();
+}
+
+async function delRecord(id) {
+  if (!confirm('이 기록을 삭제하시겠습니까?')) return;
+  await fetch(`/api/records/${id}`, { method:'DELETE' });
+  loadRecords();
+}
+
+function exportCSV() { window.location = '/api/export/csv'; }
+
+// ── 특별점검
+async function loadSpecials() {
+  const rows = await fetch('/api/specials').then(r=>r.json());
+  const tbody = document.querySelector('#specialTable tbody');
+  tbody.innerHTML = rows.map(r=>`
+    <tr>
+      <td>${r.date}</td><td>${r.title}</td><td>${r.vendor}</td><td>${r.type}</td>
+      <td>${r.content||''}</td>
+      <td><span class="badge ${r.status==='완료'?'badge-done':'badge-pend'}">${r.status}</span></td>
+      <td>${r.next_date||''}</td>
+      <td>
+        ${r.status!=='완료' ? `<button class="btn btn-success btn-sm" onclick="completeSpecial(${r.id})">완료</button> ` : ''}
+        <button class="btn btn-danger btn-sm" onclick="delSpecial(${r.id})">삭제</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function addSpecial() {
+  const date  = document.getElementById('sp-date').value;
+  const title = document.getElementById('sp-title').value.trim();
+  if (!date || !title) { alert('날짜와 제목을 입력하세요.'); return; }
+  const body = {
+    date, title,
+    vendor:    document.getElementById('sp-vendor').value,
+    type:      document.getElementById('sp-type').value,
+    content:   document.getElementById('sp-content').value,
+    status:    document.getElementById('sp-status').value,
+    next_date: document.getElementById('sp-next').value,
+  };
+  await fetch('/api/specials', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  ['sp-date','sp-title','sp-content','sp-next'].forEach(id => document.getElementById(id).value='');
+  loadSpecials();
+}
+
+async function completeSpecial(id) {
+  await fetch(`/api/specials/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status:'완료'}) });
+  loadSpecials();
+}
+
+async function delSpecial(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  await fetch(`/api/specials/${id}`, { method:'DELETE' });
+  loadSpecials();
+}
+
+// ── 초기 로드
+loadSummary();
+loadDashRecords();
+</script>
+</body>
+</html>
